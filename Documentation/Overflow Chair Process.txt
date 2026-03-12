@@ -1,0 +1,66 @@
+Unconfirmed Appointment Sweep to Overflow Chair Process
+
+1. Purpose
+This document describes the process used to manage the Unconfirmed Appointment Sweep to Overflow Chair workflow.
+The process captures office capacity data, calculates AM/PM pacing limits based on seen capacity, and updates sweep limits while excluding specific offices when necessary.
+________________________________________
+2. Process Overview
+The process consists of the following major steps:
+1.	Store historical data.
+2.	Populate office capacity and pace values.
+3.	Update sweep limits for each office.
+4.	Exclude specific offices from the sweep process when required.
+________________________________________
+3. Store Historical Pace Data
+Before updating pacing data, the current values from the OfficeSweepPaceByDay table are stored in a history table for record keeping.
+INSERT INTO Medbi.dbo.OfficeSweepPaceByDayHistory
+SELECT OfficeNum, SeenCapacity, AMLimit, PMLimit, InsertedDate
+FROM Medbi.dbo.OfficeSweepPaceByDay;
+Description
+•	Copies existing pace data into OfficeSweepPaceByDayHistory
+•	Maintains historical records for auditing and tracking changes
+________________________________________
+4. Populate Office Sweep Pace Table
+The following table is populated with Seen Capacity logic, which determines the AM and PM pacing values.
+Table Used
+Medbi.dbo.OfficeSweepPaceByDay
+Fields
+•	OfficeNum – Unique identifier for the office
+•	SeenCapacity – Total patient capacity seen by the office
+•	AMLimit – Calculated morning pacing limit
+•	PMLimit – Calculated afternoon pacing limit
+•	InsertedDate – Date the record was created
+Logic
+•	Seen Capacity is calculated based on office activity.
+•	AM and PM pacing limits are assigned based on the seen capacity.
+________________________________________
+5. Update Office Sweep Limits
+Once the OfficeSweepPaceByDay table is populated, the OfficeSweep table is updated using the calculated limits.
+Target Table
+Medbi.dbo.OfficeSweep
+Fields Updated
+•	AMLimit
+•	PMLimit
+Update Logic
+The update is performed by matching records using the OfficeNum field.
+This ensures that each office receives the correct AM and PM pacing limits based on its seen capacity.
+________________________________________
+6. Office Exclusion Logic
+Certain offices may need to be excluded from the sweep process.
+To manage this, the following table is used:
+Medbi.dbo.OfficeSweepExclusionList
+Purpose
+This table stores offices that should not participate in the sweep process.
+How It Works
+•	During the update process, this table is referenced.
+•	Any office present in the exclusion list is ignored by the sweep update logic.
+Adding an Office to the Exclusion List
+If an office should not participate in the sweep process, insert it into the exclusion table.
+Example:
+INSERT INTO Medbi.dbo.OfficeSweepExclusionList (OfficeNum, OfficeName, InsertedDate)
+Once inserted, that office will automatically be excluded from the sweep calculations and updates.
+________________________________________
+
+The Job Name to populate this process: 
+CAT_AG3-BI-Unconfirmed_Appointment_Sweep_PreReq
+Every Friday at 2:15 PM
